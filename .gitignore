@@ -1,0 +1,7 @@
+node_modules/
+.env
+.vercel/
+playwright-report/
+test-results/
+fotos-originais/
+.env.example

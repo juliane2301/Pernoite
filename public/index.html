@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pernoite</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header class="topo">
+    <h1><img id="logo" src="logo.png" alt="Pernoite"></h1>
+    <div id="area-usuario" hidden>
+      <span id="saudacao"></span>
+      <button type="button" id="botao-sair" class="secundario">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Visitante: cadastro e login -->
+    <div id="area-visitante" class="duas-colunas">
+      <section aria-labelledby="titulo-cadastro">
+        <h2 id="titulo-cadastro">Criar conta</h2>
+        <form id="form-cadastro" novalidate>
+          <label for="cadastro-nome">Nome completo</label>
+          <input id="cadastro-nome" type="text" autocomplete="off">
+          <label for="cadastro-email">E-mail (cadastro)</label>
+          <input id="cadastro-email" type="email" autocomplete="off">
+          <label for="cadastro-senha">Senha (cadastro)</label>
+          <input id="cadastro-senha" type="password" autocomplete="new-password" aria-describedby="dica-senha">
+          <small id="dica-senha">De 8 a 20 caracteres, com pelo menos um número.</small>
+          <button type="submit">Cadastrar</button>
+        </form>
+        <p id="msg-cadastro" class="mensagem" role="status"></p>
+      </section>
+
+      <section aria-labelledby="titulo-login">
+        <h2 id="titulo-login">Entrar</h2>
+        <form id="form-login" novalidate>
+          <label for="login-email">E-mail (login)</label>
+          <input id="login-email" type="email" autocomplete="off">
+          <label for="login-senha">Senha (login)</label>
+          <input id="login-senha" type="password" autocomplete="current-password">
+          <button type="submit">Entrar</button>
+        </form>
+        <p id="msg-login" class="mensagem" role="status"></p>
+      </section>
+    </div>
+
+    <!-- Hóspede logado: busca de quartos e reservas -->
+    <div id="area-hospede" hidden>
+      <section aria-labelledby="titulo-hoteis">
+        <h2 id="titulo-hoteis">Onde você quer se hospedar?</h2>
+        <label for="filtro-cidade">Destino</label>
+        <select id="filtro-cidade">
+          <option value="">Todos os destinos</option>
+        </select>
+        <p id="msg-hoteis" class="mensagem" role="status"></p>
+        <ul id="lista-hoteis" class="cartoes" aria-label="Hotéis"></ul>
+      </section>
+
+      <section id="secao-busca" aria-labelledby="titulo-busca" hidden>
+        <h2 id="titulo-busca">Buscar quartos</h2>
+        <form id="form-busca" class="linha" novalidate>
+          <div>
+            <label for="busca-checkin">Check-in</label>
+            <input id="busca-checkin" type="date">
+          </div>
+          <div>
+            <label for="busca-checkout">Check-out</label>
+            <input id="busca-checkout" type="date">
+          </div>
+          <div>
+            <label for="busca-hospedes">Hóspedes</label>
+            <input id="busca-hospedes" type="number" value="1" step="1">
+          </div>
+          <button type="submit">Buscar quartos</button>
+        </form>
+        <p id="msg-busca" class="mensagem" role="status"></p>
+        <ul id="lista-quartos" class="cartoes" aria-label="Quartos disponíveis"></ul>
+      </section>
+
+      <section aria-labelledby="titulo-reservas">
+        <h2 id="titulo-reservas">Minhas reservas</h2>
+        <p id="msg-reservas" class="mensagem" role="status"></p>
+        <ul id="lista-reservas" class="cartoes" aria-label="Minhas reservas"></ul>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

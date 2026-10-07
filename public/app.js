@@ -153,6 +153,24 @@ function escolherHotel(hotel) {
 }
 
 // ---------- Busca e reserva de quartos ----------
+// Soma dias a uma data AAAA-MM-DD.
+function somarDias(iso, dias) {
+  const [a, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
+
+// O check-out é sempre depois do check-in: ajusta o mínimo do campo e corrige a data se preciso.
+function ajustarCheckout() {
+  const checkin = $('busca-checkin').value;
+  if (!checkin) return;
+  const minimo = somarDias(checkin, 1);
+  $('busca-checkout').min = minimo;
+  if ($('busca-checkout').value < minimo) $('busca-checkout').value = minimo;
+}
+
+$('busca-checkin').addEventListener('change', ajustarCheckout);
+$('busca-checkout').addEventListener('change', ajustarCheckout);
+
 $('form-busca').addEventListener('submit', async (e) => {
   e.preventDefault();
   const lista = $('lista-quartos');
@@ -160,6 +178,10 @@ $('form-busca').addEventListener('submit', async (e) => {
   const checkin = $('busca-checkin').value;
   const checkout = $('busca-checkout').value;
   const hospedes = Number($('busca-hospedes').value);
+  if (!checkin || !checkout) {
+    mensagem('msg-busca', 'Informe as datas de check-in e check-out.', 'erro');
+    return;
+  }
   try {
     const params = new URLSearchParams({ hotel: hotelEscolhido.id, checkin, checkout, hospedes });
     const quartos = await api(`/api/quartos/disponiveis?${params}`);
@@ -255,8 +277,10 @@ async function iniciar() {
   const site = await api('/api/site');
   $('logo').alt = site.nome;
   document.title = site.nome;
+  // A busca já abre preenchida: entrada hoje, saída amanhã.
   $('busca-checkin').min = site.hoje;
-  $('busca-checkout').min = site.hoje;
+  $('busca-checkin').value = site.hoje;
+  ajustarCheckout();
   if (token) {
     try { await entrar(sessionStorage.getItem('nome') ?? ''); } catch { sair(); }
   }

@@ -2,8 +2,15 @@
 import { criarApp } from '../src/app.js';
 import { criarBanco } from '../src/db.js';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('Defina a variável de ambiente DATABASE_URL na Vercel (string de conexão do Supabase).');
+const url = process.env.DATABASE_URL;
+
+// Sem a variável, responde o motivo em JSON em vez de derrubar a função (FUNCTION_INVOCATION_FAILED).
+function semBanco(_req, res) {
+  res.statusCode = 500;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify({
+    erro: 'Variável de ambiente DATABASE_URL não definida na Vercel (string de conexão do Supabase).',
+  }));
 }
 
-export default criarApp({ db: criarBanco(process.env.DATABASE_URL) });
+export default url ? criarApp({ db: criarBanco(url) }) : semBanco;

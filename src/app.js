@@ -36,6 +36,10 @@ const SELECIONAR_QUARTO = `
 
 const NAO_ENCONTRADA = { ok: false };
 
+// Express 4 não captura erros de funções async. Este wrapper encaminha a exceção para o
+// middleware de erro (que responde JSON) em vez de derrubar a função e devolver texto/HTML.
+const assincrono = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
 export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}) {
   const app = express();
   app.disable('x-powered-by');
@@ -54,7 +58,7 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
   const erro = (res, status, mensagem) => res.status(status).json({ erro: mensagem });
   const comoInteiro = (valor) => (/^\d+$/.test(String(valor)) ? Number(valor) : null);
 
-  async function autenticar(req, res, next) {
+  const autenticar = assincrono(async (req, res, next) => {
     const cabecalho = req.get('Authorization') ?? '';
     const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7) : '';
     const [sessao] = token
@@ -67,12 +71,12 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
     if (!sessao) return erro(res, 401, 'Faça login para continuar.');
     req.hospede = sessao;
     next();
-  }
+  });
 
   app.get('/api/site', (_req, res) => res.json({ nome: NOME_SITE, hoje: hoje(agora()) }));
 
   // ---------- Cadastro e login ----------
-  app.post('/api/cadastro', async (req, res) => {
+  app.post('/api/cadastro', assincrono(async (req, res) => {
     const { nome, email, senha } = req.body ?? {};
     if (typeof nome !== 'string' || nome.trim() === '') return erro(res, 400, 'Informe o nome.');
     if (!validarEmail(email)) return erro(res, 400, 'E-mail inválido.');
@@ -89,9 +93,9 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
       if (e.code === VIOLACAO_UNICA) return erro(res, 409, 'E-mail já cadastrado.');
       throw e;
     }
-  });
+  }));
 
-  app.post('/api/login', async (req, res) => {
+  app.post('/api/login', assincrono(async (req, res) => {
     const { email, senha } = req.body ?? {};
     const [hospede] = typeof email === 'string'
       ? await db.query('SELECT * FROM hospedes WHERE email = $1', [email.trim().toLowerCase()])
@@ -103,22 +107,22 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
     const token = randomBytes(24).toString('hex');
     await db.query('INSERT INTO sessoes (token, hospede_id) VALUES ($1, $2)', [token, hospede.id]);
     res.json({ token, nome: hospede.nome });
-  });
+  }));
 
-  app.post('/api/logout', autenticar, async (req, res) => {
+  app.post('/api/logout', autenticar, assincrono(async (req, res) => {
     await db.query('DELETE FROM sessoes WHERE token = $1', [req.get('Authorization').slice(7)]);
     res.status(204).end();
-  });
+  }));
 
   // ---------- Hotéis ----------
-  app.get('/api/hoteis', async (_req, res) => {
+  app.get('/api/hoteis', assincrono(async (_req, res) => {
     res.json(await db.query(
       `SELECT h.id, h.nome, h.cidade, h.estado, h.descricao, h.foto,
               COUNT(q.id)::int AS quartos, MIN(q.diaria)::float8 AS "diariaMinima"
        FROM hoteis h LEFT JOIN quartos q ON q.hotel_id = h.id
        GROUP BY h.id ORDER BY h.cidade, h.nome`,
     ));
-  });
+  }));
 
   // Filtro opcional ?hotel=ID nas rotas de quartos. Sem ele, vale para todos os hotéis (id null).
   async function hotelDaConsulta(req) {
@@ -129,16 +133,16 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
   }
 
   // ---------- Quartos ----------
-  app.get('/api/quartos', async (req, res) => {
+  app.get('/api/quartos', assincrono(async (req, res) => {
     const hotel = await hotelDaConsulta(req);
     if (!hotel.ok) return erro(res, 404, 'Hotel não encontrado.');
     res.json(await db.query(
       `${SELECIONAR_QUARTO} WHERE ($1::int IS NULL OR q.hotel_id = $1) ORDER BY h.nome, q.numero`,
       [hotel.id],
     ));
-  });
+  }));
 
-  app.get('/api/quartos/disponiveis', async (req, res) => {
+  app.get('/api/quartos/disponiveis', assincrono(async (req, res) => {
     const { checkin, checkout } = req.query;
     const hospedes = Number(req.query.hospedes);
     const periodo = validarPeriodo(checkin, checkout, hoje(agora()));
@@ -163,10 +167,10 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
     res.json(livres.map((q) => ({
       ...q, noites: periodo.noites, total: calcularTotal(q.diaria, periodo.noites),
     })));
-  });
+  }));
 
   // ---------- Reservas ----------
-  app.post('/api/reservas', autenticar, async (req, res) => {
+  app.post('/api/reservas', autenticar, assincrono(async (req, res) => {
     const { quartoId, checkin, checkout, hospedes } = req.body ?? {};
     const periodo = validarPeriodo(checkin, checkout, hoje(agora()));
     if (!periodo.ok) return erro(res, 400, periodo.erro);
@@ -203,14 +207,14 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
       if (e.code === VIOLACAO_EXCLUSAO) return erro(res, 409, indisponivel); // rede de segurança do banco
       throw e;
     }
-  });
+  }));
 
-  app.get('/api/reservas', autenticar, async (req, res) => {
+  app.get('/api/reservas', autenticar, assincrono(async (req, res) => {
     res.json(await db.query(
       `${SELECIONAR_RESERVA} WHERE r.hospede_id = $1 ORDER BY r.checkin DESC, r.id DESC`,
       [req.hospede.id],
     ));
-  });
+  }));
 
   // Reserva do hóspede logado; reservas de outras pessoas aparecem como "não encontrada".
   async function buscarReservaDoHospede(req) {
@@ -233,13 +237,16 @@ export function criarApp({ db, agora = () => new Date(), rodadasHash = 10 } = {}
     res.json(atualizada);
   }
 
-  app.post('/api/reservas/:id/cancelar', autenticar, (req, res) =>
-    mudarStatus(req, res, podeCancelar, 'cancelada'));
+  app.post('/api/reservas/:id/cancelar', autenticar, assincrono((req, res) =>
+    mudarStatus(req, res, podeCancelar, 'cancelada')));
 
-  app.post('/api/reservas/:id/checkin', autenticar, (req, res) =>
-    mudarStatus(req, res, (r) => podeFazerCheckin(r, hoje(agora())), 'checkin_feito'));
+  app.post('/api/reservas/:id/checkin', autenticar, assincrono((req, res) =>
+    mudarStatus(req, res, (r) => podeFazerCheckin(r, hoje(agora())), 'checkin_feito')));
 
-  // JSON malformado e erros inesperados
+  // Rota de API inexistente: responde JSON em vez de HTML
+  app.use('/api', (_req, res) => erro(res, 404, 'Rota não encontrada.'));
+
+  // JSON malformado e erros inesperados (inclusive falhas do banco)
   app.use((err, _req, res, _next) => {
     if (err.type === 'entity.parse.failed') return erro(res, 400, 'Corpo da requisição inválido.');
     console.error(err);

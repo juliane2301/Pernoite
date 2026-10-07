@@ -16,7 +16,7 @@ Antes do `git add`, confira que o arquivo `.env` **não** está na lista (`git s
 ## 2. Supabase (banco)
 1. Em supabase.com, **New project**. Escolha um nome, uma região próxima (por exemplo São Paulo) e **anote a senha do banco** (ela só aparece ali).
 2. Espere o projeto ficar pronto. Vá em **SQL Editor → New query**, cole **todo** o conteúdo de `supabase/schema.sql` e clique em **Run**.
-3. Confira em **Table Editor**: devem existir as tabelas `hospedes`, `hoteis` (com 4 hotéis), `quartos` (com 34 quartos), `reservas` e `sessoes`.
+3. Confira em **Table Editor**: devem existir as tabelas `hospedes`, `hoteis` (com 4 hotéis), `quartos` (com 20 quartos), `reservas` e `sessoes`.
 4. Pegue a string de conexão: **Connect** (ou Project Settings → Database) → **Connection string** → aba **URI** → modo **Transaction pooler** (porta 6543). Troque `[YOUR-PASSWORD]` pela senha do banco.
    - Se a senha tiver caracteres especiais (`@`, `#`, `/`, `:`), eles precisam ser codificados na URL. O mais simples é redefinir uma senha só com letras e números (Project Settings → Database → Reset password).
 

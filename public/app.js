@@ -39,11 +39,6 @@ function criar(tag, { texto, classe, atributos = {} } = {}, ...filhos) {
 
 const foto = (src, alt) => criar('img', { classe: 'foto', atributos: { src, alt, loading: 'lazy' } });
 
-// Suítes têm foto própria; os demais quartos usam a foto de quarto do hotel.
-const fotoDoQuarto = (quarto) => (/suíte/i.test(quarto.tipo)
-  ? 'fotos/quartos/suite.jpg'
-  : `fotos/quartos/${hotelEscolhido.foto}`);
-
 // ---------- Sessão ----------
 function mostrarTela(logado, nome = '') {
   $('area-visitante').hidden = logado;
@@ -198,7 +193,7 @@ $('form-busca').addEventListener('submit', async (e) => {
       });
       botao.addEventListener('click', () => reservar(q, { checkin, checkout, hospedes }));
       lista.append(criar('li', {},
-        foto(fotoDoQuarto(q), `Foto do quarto ${q.numero}`),
+        foto(`fotos/quartos/${q.foto}`, `Foto do quarto ${q.numero}`),
         criar('h3', { texto: `Quarto ${q.numero} · ${q.tipo}` }),
         criar('p', { texto: `Até ${q.capacidade} hóspede(s) · ${brl(q.diaria)} por noite` }),
         criar('p', { texto: `${q.noites} noite(s)` }),

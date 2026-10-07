@@ -1,7 +1,7 @@
 -- Pernoite · esquema do banco (Postgres / Supabase)
 -- Rode UMA vez: Supabase → SQL Editor → New query → colar → Run.
 -- É seguro rodar de novo (usa IF NOT EXISTS e ON CONFLICT).
--- Atenção: um banco criado com a v1.0 (sem a tabela "hoteis") ou a v1.1 (sem a coluna "foto") precisa ser recriado do zero.
+-- Atenção: um banco criado com uma versão anterior (sem a tabela "hoteis" ou sem a coluna "foto" em hoteis e quartos) precisa ser recriado do zero.
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS hoteis (
   cidade    TEXT NOT NULL,
   estado    TEXT NOT NULL,
   descricao TEXT NOT NULL,
-  foto      TEXT NOT NULL -- nome do arquivo em public/fotos/hoteis e public/fotos/quartos
+  foto      TEXT NOT NULL -- nome do arquivo em public/fotos/hoteis
 );
 
 CREATE TABLE IF NOT EXISTS hospedes (
@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS quartos (
   tipo       TEXT NOT NULL,
   capacidade INTEGER NOT NULL CHECK (capacidade BETWEEN 1 AND 4),
   diaria     NUMERIC(10, 2) NOT NULL CHECK (diaria > 0),
+  foto       TEXT NOT NULL, -- nome do arquivo em public/fotos/quartos
   UNIQUE (hotel_id, numero) -- o mesmo número pode existir em hotéis diferentes
 );
 
@@ -71,33 +72,34 @@ INSERT INTO hoteis (nome, cidade, estado, descricao, foto) VALUES
   ('Hotel Iguaçu Verde', 'Foz do Iguaçu', 'PR', 'Piscina ampla e chalés entre palmeiras, a caminho das Cataratas.', 'iguacu-verde.jpg')
 ON CONFLICT (nome) DO NOTHING;
 
-INSERT INTO quartos (hotel_id, numero, tipo, capacidade, diaria)
-SELECT h.id, v.numero, v.tipo, v.capacidade, v.diaria
+-- Cinco quartos por hotel, cada um com uma foto diferente.
+INSERT INTO quartos (hotel_id, numero, tipo, capacidade, diaria, foto)
+SELECT h.id, v.numero, v.tipo, v.capacidade, v.diaria, v.foto
 FROM (VALUES
-  ('Hotel Araucária', '101', 'Solteiro', 1, 150), ('Hotel Araucária', '102', 'Solteiro', 1, 150),
-  ('Hotel Araucária', '103', 'Casal', 2, 220), ('Hotel Araucária', '104', 'Casal', 2, 220),
-  ('Hotel Araucária', '105', 'Casal', 2, 240),
-  ('Hotel Araucária', '201', 'Família', 3, 300), ('Hotel Araucária', '202', 'Família', 3, 300),
-  ('Hotel Araucária', '203', 'Família', 4, 380), ('Hotel Araucária', '204', 'Família', 4, 400),
-  ('Hotel Araucária', '301', 'Suíte', 2, 450), ('Hotel Araucária', '302', 'Suíte', 2, 450),
-  ('Hotel Araucária', '303', 'Suíte master', 4, 600),
+  ('Hotel Araucária', '101', 'Solteiro', 1, 150, 'araucaria.jpg'),
+  ('Hotel Araucária', '103', 'Casal', 2, 220, 'beira-mar.jpg'),
+  ('Hotel Araucária', '201', 'Família', 3, 300, 'iguacu-verde.jpg'),
+  ('Hotel Araucária', '203', 'Família', 4, 380, 'serra-azul.jpg'),
+  ('Hotel Araucária', '301', 'Suíte', 2, 450, 'suite.jpg'),
 
-  ('Pousada Serra Azul', '1', 'Chalé casal', 2, 320), ('Pousada Serra Azul', '2', 'Chalé casal', 2, 320),
-  ('Pousada Serra Azul', '3', 'Chalé casal', 2, 350),
-  ('Pousada Serra Azul', '4', 'Chalé família', 4, 480), ('Pousada Serra Azul', '5', 'Chalé família', 4, 480),
-  ('Pousada Serra Azul', '6', 'Chalé master', 4, 650),
+  ('Pousada Serra Azul', '1', 'Chalé casal', 2, 320, 'araucaria.jpg'),
+  ('Pousada Serra Azul', '2', 'Chalé casal', 2, 320, 'beira-mar.jpg'),
+  ('Pousada Serra Azul', '4', 'Chalé família', 4, 480, 'iguacu-verde.jpg'),
+  ('Pousada Serra Azul', '5', 'Chalé família', 4, 480, 'serra-azul.jpg'),
+  ('Pousada Serra Azul', '6', 'Chalé master', 4, 650, 'suite.jpg'),
 
-  ('Hotel Beira-Mar', '101', 'Solteiro', 1, 180), ('Hotel Beira-Mar', '102', 'Solteiro', 1, 180),
-  ('Hotel Beira-Mar', '201', 'Casal', 2, 280), ('Hotel Beira-Mar', '202', 'Casal', 2, 280),
-  ('Hotel Beira-Mar', '203', 'Casal vista mar', 2, 360), ('Hotel Beira-Mar', '204', 'Casal vista mar', 2, 360),
-  ('Hotel Beira-Mar', '301', 'Família', 4, 420), ('Hotel Beira-Mar', '302', 'Família vista mar', 4, 520),
+  ('Hotel Beira-Mar', '101', 'Solteiro', 1, 180, 'araucaria.jpg'),
+  ('Hotel Beira-Mar', '201', 'Casal', 2, 280, 'beira-mar.jpg'),
+  ('Hotel Beira-Mar', '203', 'Casal vista mar', 2, 360, 'iguacu-verde.jpg'),
+  ('Hotel Beira-Mar', '301', 'Família', 4, 420, 'serra-azul.jpg'),
+  ('Hotel Beira-Mar', '302', 'Família vista mar', 4, 520, 'suite.jpg'),
 
-  ('Hotel Iguaçu Verde', '11', 'Solteiro', 1, 130), ('Hotel Iguaçu Verde', '12', 'Solteiro', 1, 130),
-  ('Hotel Iguaçu Verde', '21', 'Casal', 2, 200), ('Hotel Iguaçu Verde', '22', 'Casal', 2, 200),
-  ('Hotel Iguaçu Verde', '23', 'Casal', 2, 210),
-  ('Hotel Iguaçu Verde', '31', 'Família', 3, 290), ('Hotel Iguaçu Verde', '32', 'Família', 4, 350),
-  ('Hotel Iguaçu Verde', '41', 'Suíte', 2, 400)
-) AS v(hotel, numero, tipo, capacidade, diaria)
+  ('Hotel Iguaçu Verde', '11', 'Solteiro', 1, 130, 'araucaria.jpg'),
+  ('Hotel Iguaçu Verde', '21', 'Casal', 2, 200, 'beira-mar.jpg'),
+  ('Hotel Iguaçu Verde', '31', 'Família', 3, 290, 'iguacu-verde.jpg'),
+  ('Hotel Iguaçu Verde', '32', 'Família', 4, 350, 'serra-azul.jpg'),
+  ('Hotel Iguaçu Verde', '41', 'Suíte', 2, 400, 'suite.jpg')
+) AS v(hotel, numero, tipo, capacidade, diaria, foto)
 JOIN hoteis h ON h.nome = v.hotel
 ORDER BY h.id, v.numero
 ON CONFLICT (hotel_id, numero) DO NOTHING;

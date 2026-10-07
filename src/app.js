@@ -29,7 +29,7 @@ const SELECIONAR_RESERVA = `
 `;
 
 const SELECIONAR_QUARTO = `
-  SELECT q.id, q.numero, q.tipo, q.capacidade, q.diaria::float8 AS diaria,
+  SELECT q.id, q.numero, q.tipo, q.capacidade, q.diaria::float8 AS diaria, q.foto,
          h.id AS "hotelId", h.nome AS hotel
   FROM quartos q JOIN hoteis h ON h.id = q.hotel_id
 `;
